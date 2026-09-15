@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Schedule</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #ffffff;
+      color: #000000;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 16px;
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .date {
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+
+    ul {
+      list-style-type: none;
+    }
+
+    li {
+      margin-bottom: 8px;
+      white-space: pre;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="date" class="date">----.--.--</div>
+  <ul id="schedule">
+    <li>loading...</li>
+  </ul>
+
+  <script>
+    // 날짜 기반 시드 생성을 위한 32비트 해시 함수 (cyrb128)
+    function cyrb128(str) {
+      let h1 = 1779033703, h2 = 3144134277,
+          h3 = 1013904242, h4 = 2773480762;
+      for (let i = 0, ch; i < str.length; i++) {
+        ch = str.charCodeAt(i);
+        h1 = h2 ^ Math.imul(h1 ^ ch, 597399067);
+        h2 = h3 ^ Math.imul(h2 ^ ch, 2869860223);
+        h3 = h4 ^ Math.imul(h3 ^ ch, 951274213);
+        h4 = h1 ^ Math.imul(h4 ^ ch, 2716044179);
+      }
+      h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+      h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860223);
+      h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+      h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+      return [(h1^h2^h3^h4)>>>0, (h2^h1)>>>0, (h3^h1)>>>0, (h4^h1)>>>0];
+    }
+
+    // 시드 기반 0~1 사이 Pseudo-Random 생성기 (Mulberry32)
+    function mulberry32(a) {
+      return function() {
+        var t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      }
+    }
+
+    function getTodaySchedule() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      
+      const dateStr = `${year}.${month}.${day}`;
+      const seedKey = `${year}${month}${day}`;
+
+      // 날짜 문자열로 시드 난수 생성기 초기화
+      const seed = cyrb128(seedKey);
+      const rand = mulberry32(seed[0]);
+
+      // 09:00 (540분) ~ 24:00 (1440분) 범위 중 중복 없이 4개 선택
+      const startMin = 9 * 60; // 540
+      const endMin = 24 * 60;  // 1440
+      const range = endMin - startMin; // 900분
+
+      const selectedMinutes = [];
+      while (selectedMinutes.length < 4) {
+        const picked = startMin + Math.floor(rand() * range);
+        if (!selectedMinutes.includes(picked)) {
+          selectedMinutes.push(picked);
+        }
+      }
+
+      // 오름차순 정렬 (시간순)
+      selectedMinutes.sort((a, b) => a - b);
+
+      // 명단 셔플 (Fisher-Yates Shuffle with PRNG)
+      const people = ["호준", "명선", "찬혁", "민욱"];
+      for (let i = people.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        [people[i], people[j]] = [people[j], people[i]];
+      }
+
+      // 시간 포맷 변환 및 매핑 (HH:MM)
+      const schedule = selectedMinutes.map((min, idx) => {
+        const h = String(Math.floor(min / 60)).padStart(2, '0');
+        const m = String(min % 60).padStart(2, '0');
+        return {
+          time: `${h}:${m}`,
+          person: people[idx]
+        };
+      });
+
+      return { dateStr, schedule };
+    }
+
+    function render() {
+      const { dateStr, schedule } = getTodaySchedule();
+      
+      document.getElementById('date').innerText = dateStr;
+      
+      const listEl = document.getElementById('schedule');
+      listEl.innerHTML = '';
+      
+      schedule.forEach(item => {
+        const li = document.createElement('li');
+        li.innerText = `${item.time} - ${item.person}`;
+        listEl.appendChild(li);
+      });
+    }
+
+    window.onload = render;
+  </script>
+</body>
+</html>

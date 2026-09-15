@@ -33,33 +33,6 @@
       margin-bottom: 8px;
       white-space: pre;
     }
-
-    .marquee-container {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      overflow: hidden;
-      white-space: nowrap;
-      padding: 12px 0;
-      border-top: 1px solid #000000;
-      background-color: #ffffff;
-    }
-
-    .marquee-content {
-      display: inline-block;
-      white-space: nowrap;
-      animation: marquee 25s linear infinite;
-    }
-
-    @keyframes marquee {
-      0% {
-        transform: translateX(0);
-      }
-      100% {
-        transform: translateX(-50%);
-      }
-    }
   </style>
 </head>
 <body>
@@ -68,14 +41,6 @@
   <ul id="schedule">
     <li>loading...</li>
   </ul>
-
-  <!-- 하단 흘러가는 슬로건 텍스트 바 -->
-  <div class="marquee-container">
-    <div class="marquee-content">
-      <span>Every day has its own rhythm. &nbsp; • &nbsp; Visual Design Workshop 2 &nbsp; • &nbsp; 호준 · 명선 · 찬혁 · 민욱 &nbsp; • &nbsp; </span>
-      <span>Every day has its own rhythm. &nbsp; • &nbsp; Visual Design Workshop 2 &nbsp; • &nbsp; 호준 · 명선 · 찬혁 · 민욱 &nbsp; • &nbsp; </span>
-    </div>
-  </div>
 
   <script>
     // 날짜 기반 시드 생성을 위한 32비트 해시 함수 (cyrb128)

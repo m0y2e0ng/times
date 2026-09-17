@@ -89,13 +89,16 @@
       const seed = cyrb128(seedKey);
       const rand = mulberry32(seed[0]);
 
-      // 09:00 (540분) ~ 24:00 (1440분) 범위 중 중복 없이 4개 선택
+      // 명단 설정 (총 5명)
+      const people = ["호준", "명선", "찬혁", "민욱", "주희"];
+
+      // 09:00 (540분) ~ 24:00 (1440분) 범위 중 중복 없이 인원수만큼 선택
       const startMin = 9 * 60; // 540
       const endMin = 24 * 60;  // 1440
       const range = endMin - startMin; // 900분
 
       const selectedMinutes = [];
-      while (selectedMinutes.length < 4) {
+      while (selectedMinutes.length < people.length) {
         const picked = startMin + Math.floor(rand() * range);
         if (!selectedMinutes.includes(picked)) {
           selectedMinutes.push(picked);
@@ -106,7 +109,6 @@
       selectedMinutes.sort((a, b) => a - b);
 
       // 명단 셔플 (Fisher-Yates Shuffle with PRNG)
-      const people = ["호준", "명선", "찬혁", "민욱"];
       for (let i = people.length - 1; i > 0; i--) {
         const j = Math.floor(rand() * (i + 1));
         [people[i], people[j]] = [people[j], people[i]];

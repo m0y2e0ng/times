@@ -23,8 +23,100 @@
       padding: 20px;
     }
 
-    .date {
+    .date-wrapper {
+      position: relative;
+      display: inline-block;
       margin-bottom: 20px;
+    }
+
+    .date {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      user-select: none;
+      display: inline-block;
+    }
+
+    .date:hover {
+      opacity: 0.6;
+    }
+
+    /* 미니멀 흑백 달력 팝오버 */
+    .calendar-popover {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      background: #ffffff;
+      border: 1px solid #000000;
+      padding: 12px 14px;
+      z-index: 100;
+      width: 220px;
+      user-select: none;
+    }
+
+    .calendar-popover.active {
+      display: block;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    .calendar-nav-btn {
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 0 4px;
+      color: #000000;
+    }
+
+    .calendar-nav-btn:hover {
+      opacity: 0.5;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .calendar-day-name {
+      font-weight: 400;
+      color: #888888;
+      padding-bottom: 4px;
+    }
+
+    .calendar-cell {
+      padding: 3px 0;
+      cursor: pointer;
+    }
+
+    .calendar-cell:hover:not(.empty) {
+      background-color: #000000;
+      color: #ffffff;
+    }
+
+    .calendar-cell.selected {
+      background-color: #000000;
+      color: #ffffff;
+    }
+
+    .calendar-cell.today:not(.selected) {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .calendar-cell.empty {
+      cursor: default;
     }
 
     ul {
@@ -39,12 +131,31 @@
 </head>
 <body>
 
-  <div id="date" class="date">----.--.--</div>
+  <div class="date-wrapper">
+    <div id="date" class="date" title="클릭하여 날짜 선택">----.--.--</div>
+    <div id="calendar" class="calendar-popover">
+      <div class="calendar-header">
+        <button id="prev-month" class="calendar-nav-btn" aria-label="이전 달">&lt;</button>
+        <span id="calendar-month-year">2026.10</span>
+        <button id="next-month" class="calendar-nav-btn" aria-label="다음 달">&gt;</button>
+      </div>
+      <div class="calendar-grid" id="calendar-days">
+        <!-- JS 생성 -->
+      </div>
+    </div>
+  </div>
+
   <ul id="schedule">
     <li>loading...</li>
   </ul>
 
   <script>
+    // 현재 선택된 날짜 (기본값: 오늘)
+    let currentDate = new Date();
+    // 달력 뷰용 년/월
+    let viewYear = currentDate.getFullYear();
+    let viewMonth = currentDate.getMonth();
+
     // 날짜 기반 시드 생성을 위한 32비트 해시 함수 (cyrb128)
     function cyrb128(str) {
       let h1 = 1779033703, h2 = 3144134277,
@@ -73,14 +184,14 @@
       }
     }
 
-    function getTodaySchedule() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
+    // 특정 날짜의 스케줄 데이터 계산 (결정론적 난수)
+    function getScheduleForDate(dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
       
       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const dayName = days[now.getDay()];
+      const dayName = days[dateObj.getDay()];
       
       const dateStr = `${year}.${month}.${day}(${dayName})`;
       const seedKey = `${year}${month}${day}`;
@@ -127,8 +238,9 @@
       return { dateStr, schedule };
     }
 
-    function render() {
-      const { dateStr, schedule } = getTodaySchedule();
+    // 화면 렌더링
+    function render(dateObj) {
+      const { dateStr, schedule } = getScheduleForDate(dateObj);
       
       document.getElementById('date').innerText = dateStr;
       
@@ -142,7 +254,119 @@
       });
     }
 
-    window.onload = render;
+    // 미니 달력 렌더링
+    function renderCalendar() {
+      const monthYearEl = document.getElementById('calendar-month-year');
+      const daysEl = document.getElementById('calendar-days');
+      
+      const displayMonth = String(viewMonth + 1).padStart(2, '0');
+      monthYearEl.innerText = `${viewYear}.${displayMonth}`;
+      
+      daysEl.innerHTML = '';
+
+      const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+      dayNames.forEach(name => {
+        const nameEl = document.createElement('div');
+        nameEl.className = 'calendar-day-name';
+        nameEl.innerText = name;
+        daysEl.appendChild(nameEl);
+      });
+
+      // 이번 달 첫째 날의 요일과 마지막 날짜
+      const firstDayIndex = new Date(viewYear, viewMonth, 1).getDay();
+      const lastDate = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+      // 시작 요일 전 빈 칸
+      for (let i = 0; i < firstDayIndex; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-cell empty';
+        daysEl.appendChild(emptyCell);
+      }
+
+      const today = new Date();
+
+      // 날짜 숫자 채우기
+      for (let d = 1; d <= lastDate; d++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell';
+        cell.innerText = d;
+
+        const isSelected = 
+          currentDate.getFullYear() === viewYear &&
+          currentDate.getMonth() === viewMonth &&
+          currentDate.getDate() === d;
+
+        const isToday = 
+          today.getFullYear() === viewYear &&
+          today.getMonth() === viewMonth &&
+          today.getDate() === d;
+
+        if (isSelected) cell.classList.add('selected');
+        if (isToday) cell.classList.add('today');
+
+        cell.addEventListener('click', (e) => {
+          e.stopPropagation();
+          currentDate = new Date(viewYear, viewMonth, d);
+          render(currentDate);
+          renderCalendar();
+          document.getElementById('calendar').classList.remove('active');
+        });
+
+        daysEl.appendChild(cell);
+      }
+    }
+
+    // 이벤트 리스너 등록
+    function initEvents() {
+      const dateEl = document.getElementById('date');
+      const calendarEl = document.getElementById('calendar');
+      const prevBtn = document.getElementById('prev-month');
+      const nextBtn = document.getElementById('next-month');
+
+      // 날짜 텍스트 클릭 시 달력 열기/닫기
+      dateEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        viewYear = currentDate.getFullYear();
+        viewMonth = currentDate.getMonth();
+        renderCalendar();
+        calendarEl.classList.toggle('active');
+      });
+
+      // 달력 내부 클릭 시 닫히지 않도록 이벤트 전파 중단
+      calendarEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+
+      // < 이전 달 이동
+      prevBtn.addEventListener('click', () => {
+        viewMonth--;
+        if (viewMonth < 0) {
+          viewMonth = 11;
+          viewYear--;
+        }
+        renderCalendar();
+      });
+
+      // > 다음 달 이동
+      nextBtn.addEventListener('click', () => {
+        viewMonth++;
+        if (viewMonth > 11) {
+          viewMonth = 0;
+          viewYear++;
+        }
+        renderCalendar();
+      });
+
+      // 달력 외부 클릭 시 닫기
+      document.addEventListener('click', () => {
+        calendarEl.classList.remove('active');
+      });
+    }
+
+    window.onload = () => {
+      initEvents();
+      render(currentDate);
+    };
   </script>
 </body>
 </html>

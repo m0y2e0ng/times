@@ -41,7 +41,6 @@
       opacity: 0.6;
     }
 
-
     /* 미니멀 흑백 달력 팝오버 */
     .calendar-popover {
       display: none;
@@ -134,7 +133,6 @@
 
   <div class="date-wrapper">
     <div id="date" class="date" title="클릭하여 날짜 선택">----.--.--</div>
-    <div id="day-count" class="day-count"></div>
     <div id="calendar" class="calendar-popover">
       <div class="calendar-header">
         <button id="prev-month" class="calendar-nav-btn" aria-label="이전 달">&lt;</button>
@@ -186,46 +184,6 @@
       }
     }
 
-    // 9월 10일 ~ 15일 수기 지정 스케줄 데이터
-    const customSchedules = {
-      '2026-09-10': [
-        { time: '20:14', person: '호준' },
-        { time: '21:43', person: '찬혁' },
-        { time: '22:08', person: '명선' },
-        { time: '23:29', person: '민욱' }
-      ],
-      '2026-09-11': [
-        { time: '11:24', person: '민욱' },
-        { time: '15:07', person: '명선' },
-        { time: '18:41', person: '찬혁' },
-        { time: '21:15', person: '호준' }
-      ],
-      '2026-09-12': [
-        { time: '10:42', person: '찬혁' },
-        { time: '13:19', person: '호준' },
-        { time: '17:55', person: '민욱' },
-        { time: '22:03', person: '명선' }
-      ],
-      '2026-09-13': [
-        { time: '09:38', person: '명선' },
-        { time: '14:51', person: '민욱' },
-        { time: '19:27', person: '호준' },
-        { time: '23:14', person: '찬혁' }
-      ],
-      '2026-09-14': [
-        { time: '11:05', person: '호준' },
-        { time: '16:22', person: '찬혁' },
-        { time: '18:49', person: '명선' },
-        { time: '22:50', person: '민욱' }
-      ],
-      '2026-09-15': [
-        { time: '10:18', person: '민욱' },
-        { time: '15:43', person: '호준' },
-        { time: '19:04', person: '찬혁' },
-        { time: '21:52', person: '명선' }
-      ]
-    };
-
     // 특정 날짜의 스케줄 데이터 계산 (결정론적 난수)
     function getScheduleForDate(dateObj) {
       const year = dateObj.getFullYear();
@@ -236,13 +194,6 @@
       const dayName = days[dateObj.getDay()];
       
       const dateStr = `${year}.${month}.${day}(${dayName})`;
-      const dateKey = `${year}-${month}-${day}`;
-
-      // 수기 지정된 날짜 스케줄이 있을 경우 우선 반환
-      if (customSchedules[dateKey] && customSchedules[dateKey].length > 0) {
-        return { dateStr, schedule: customSchedules[dateKey] };
-      }
-
       const seedKey = `${year}${month}${day}`;
 
       // 날짜 문자열로 시드 난수 생성기 초기화
@@ -287,24 +238,11 @@
       return { dateStr, schedule };
     }
 
-    // 9월 10일 기준 일차 계산
-    function getDayCount(dateObj) {
-      const target = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-      const base = new Date(2026, 8, 10); // 2026.09.10 (8 = 9월)
-      const diffDays = Math.floor((target.getTime() - base.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      return diffDays >= 1 ? `${diffDays}일차` : '';
-    }
-
     // 화면 렌더링
     function render(dateObj) {
       const { dateStr, schedule } = getScheduleForDate(dateObj);
       
       document.getElementById('date').innerText = dateStr;
-      
-      const dayCountEl = document.getElementById('day-count');
-      const dayCountText = getDayCount(dateObj);
-      dayCountEl.innerText = dayCountText;
-      dayCountEl.style.display = dayCountText ? 'block' : 'none';
       
       const listEl = document.getElementById('schedule');
       listEl.innerHTML = '';
